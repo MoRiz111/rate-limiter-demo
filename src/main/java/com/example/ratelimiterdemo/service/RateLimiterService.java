@@ -5,7 +5,10 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import com.example.ratelimiterdemo.util.RateLimiterUtil;
 
 @Service
 public class RateLimiterService {
@@ -33,5 +36,35 @@ public class RateLimiterService {
             timeStamps.add(currentTime);
             return true;
         }
+    }
+
+    /**
+     * Clean up the older unused users, to clear up space
+     */
+    @Scheduled(fixedRate = 60000) //runs for every minute
+    public void cleanUp() {
+        long currentTime = System.currentTimeMillis();
+
+        System.out.println("Before clean up : ");
+        RateLimiterUtil.printRateLimiterMap(requestMap);
+
+        requestMap.entrySet().removeIf(entry -> {
+            Queue<Long> timeStamps = entry.getValue();
+
+            // synchronized block is used, so that the queue is in sync with the allowRequest()
+            synchronized (timeStamps) {
+                while (!timeStamps.isEmpty() && currentTime - timeStamps.peek() > TIME_WINDOW) {
+                    timeStamps.poll();
+                }
+
+                // remove the user only if the queue becomes empty
+                return timeStamps.isEmpty();
+            }
+        });
+
+        System.out.println("After clean up ("
+                + RateLimiterUtil.convertMillisToHumanReadableFormat(currentTime, "HH:mm:ss") + ") : ");
+        RateLimiterUtil.printRateLimiterMap(requestMap);
+        System.out.println();
     }
 }
