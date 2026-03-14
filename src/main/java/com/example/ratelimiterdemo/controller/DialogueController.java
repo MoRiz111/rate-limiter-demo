@@ -25,12 +25,7 @@ public class DialogueController {
 
     @GetMapping("/{userId}")
     public ResponseEntity getDialogues(@PathVariable String userId) {
-        if (rateLimiterService.allowRequest(userId)) {
-            return ResponseEntity.ok("Dialogue for " + userId + " retreived");
-        } else {
-            return ResponseEntity.status(HttpStatusCode.valueOf(429))
-                    .body("Too many request for " + userId + ", please try again  later");
-        }
+        return ResponseEntity.ok("Dialogue for " + userId + " retreived");
     }
 
 }
