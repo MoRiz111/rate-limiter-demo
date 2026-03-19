@@ -29,14 +29,26 @@ public class RateLimiterFilter implements Filter {
         HttpServletResponse httpServletResponse = (HttpServletResponse) response;
         final String uri = httpServletRequest.getRequestURI();
         final String[] segments = uri.split("/");
-        final String userId = segments.length > 0 ? segments[segments.length-1] : null;
+        
+        String userId = null;
+        String endPoint = null;
+        
+        if (segments.length >= 5) {
+            // api/user /dialogue/1 or /scene/1
+            endPoint = segments[3];
+            userId = segments[4];
+        } else if (segments.length == 4) {
+         // api/user /1
+            endPoint = "user";
+            userId = segments[3];
+        }
         
         if (userId == null) {
             httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing User Id");
             return;
         }
         
-        boolean allowed = rateLimiterService.allowRequest(userId);
+        boolean allowed = rateLimiterService.allowRequest(endPoint + "-" + userId, endPoint);
         
         if (!allowed) {
             //httpServletResponse.sendError(429, "Rate Limit Exceeded"); //simply returning the error, but in some cases APIs are required to return a JSON
