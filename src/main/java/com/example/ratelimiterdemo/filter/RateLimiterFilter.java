@@ -48,7 +48,7 @@ public class RateLimiterFilter implements Filter {
             return;
         }
         
-        boolean allowed = rateLimiterService.allowRequest(endPoint + "-" + userId, endPoint);
+        boolean allowed = rateLimiterService.allowRequest(userId, endPoint);
         
         if (!allowed) {
             //httpServletResponse.sendError(429, "Rate Limit Exceeded"); //simply returning the error, but in some cases APIs are required to return a JSON
