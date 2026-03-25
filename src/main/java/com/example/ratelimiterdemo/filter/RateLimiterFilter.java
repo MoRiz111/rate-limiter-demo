@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.springframework.stereotype.Component;
 
+import com.example.ratelimiterdemo.dto.RateLimitResponse;
 import com.example.ratelimiterdemo.service.RateLimiterService;
 
 import jakarta.servlet.Filter;
@@ -48,12 +49,15 @@ public class RateLimiterFilter implements Filter {
             return;
         }
         
-        boolean allowed = rateLimiterService.allowRequest(userId, endPoint);
+        RateLimitResponse rateLimitResponse = rateLimiterService.allowRequest(userId, endPoint);
         
-        if (!allowed) {
+        httpServletResponse.setHeader("RateLmit-Remaining", String.valueOf(rateLimitResponse.getRemaining()));
+        
+        if (!rateLimitResponse.isAllowed()) {
             //httpServletResponse.sendError(429, "Rate Limit Exceeded"); //simply returning the error, but in some cases APIs are required to return a JSON
+            httpServletResponse.setHeader("Retry-After", String.valueOf(rateLimitResponse.getRetryAfter()));
             httpServletResponse.setStatus(429);
-            httpServletResponse.getWriter().write("{\"error\" : \"Rate Limit Exceeded - Too many request for " + userId + ", please try again  later.\"}");
+            //httpServletResponse.getWriter().write("{\"error\" : \"Rate Limit Exceeded - Too many request for " + userId + ", please try again  later.\"}");
             return;
         }
         
