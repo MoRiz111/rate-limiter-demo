@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.ratelimiterdemo.config.RateLimiterConfig;
 import com.example.ratelimiterdemo.config.RateLimiterProperties;
-import com.example.ratelimiterdemo.dto.RateLimitResponse;
+import com.example.ratelimiterdemo.dto.RateLimiterResponse;
 import com.example.ratelimiterdemo.util.RateLimiterUtil;
 
 @Service
@@ -46,20 +46,20 @@ public class RateLimiterService {
      * @param endPoint
      * @return
      */
-    public RateLimitResponse allowRequest(final String userId, final String endPoint) {
+    public RateLimiterResponse allowRequest(final String userId, final String endPoint) {
         final String rateLimitKey = endPoint + ":" + userId;
         
-        RateLimitResponse userIdRateLimitResponse = allowRequestByUserId(userId);
+        RateLimiterResponse userIdRateLimitResponse = allowRequestByUserId(userId);
         
         if (!userIdRateLimitResponse.isAllowed()) {
             return userIdRateLimitResponse;
         }
         
         //when both rate limiter passed, return a combined success
-        RateLimitResponse endPointRateLimitResponse = allowRequestByEndPoint(rateLimitKey, endPoint);
+        RateLimiterResponse endPointRateLimitResponse = allowRequestByEndPoint(rateLimitKey, endPoint);
         
         //Math.min is used so that client sees the stricter rate limit, as if that is hit, API call will be blocked
-        return new RateLimitResponse(true,
+        return new RateLimiterResponse(true,
                 Math.min(userIdRateLimitResponse.getRemaining(), endPointRateLimitResponse.getRemaining()), 0);
     }
 
@@ -69,7 +69,7 @@ public class RateLimiterService {
      * @param userId
      * @return
      */
-    public RateLimitResponse allowRequestByUserId(final String userId) {
+    public RateLimiterResponse allowRequestByUserId(final String userId) {
         final long currentTime = System.currentTimeMillis();
         userIdRequestMap.putIfAbsent(userId, new ConcurrentLinkedDeque<>());
         Queue<Long> timeStamps = userIdRequestMap.get(userId);
@@ -87,7 +87,7 @@ public class RateLimiterService {
                 long retryAfter = (TIME_WINDOW_PER_USER - (currentTime - timeStamps.peek()))/1000;
                 
                 //remaining no. of hits is '0', as the request limit is already hit.
-                return new RateLimitResponse(false, 0, retryAfter);
+                return new RateLimiterResponse(false, 0, retryAfter);
             }
 
             System.out.println(userId + "-" + timeStamps);
@@ -95,7 +95,7 @@ public class RateLimiterService {
             int remaining = REQUEST_LIMIT_PER_USER - timeStamps.size();
             
             //retry after time is set '0', as currently there is no restriction, as method is allowed now.
-            return new RateLimitResponse(true, remaining, 0);
+            return new RateLimiterResponse(true, remaining, 0);
         }
     }
 
@@ -108,7 +108,7 @@ public class RateLimiterService {
      * @param endPoint
      * @return
      */
-    public RateLimitResponse allowRequestByEndPoint(final String rateLimitKey, final String endPoint) {
+    public RateLimiterResponse allowRequestByEndPoint(final String rateLimitKey, final String endPoint) {
         // RateLimiterConfig config = resolveConfig(endPoint);
 
         final RateLimiterConfig rateLimiterConfigForEndPoint = timeWindowConfigMap.getOrDefault(endPoint, timeWindowConfigMap.get("default"));
@@ -133,7 +133,7 @@ public class RateLimiterService {
             if (timeStamps.size() >= requestLimit) {
                 long retryAfter = (timeWindow - (currentTime - timeStamps.peek()))/1000;
                 
-                return new RateLimitResponse(false, 0, retryAfter);
+                return new RateLimiterResponse(false, 0, retryAfter);
             }
 
             timeStamps.add(currentTime);
@@ -143,7 +143,7 @@ public class RateLimiterService {
             RateLimiterUtil.printRateLimiterMap(endPointRequestMap);
             
             //retry after time is set '0', as currently there is no restriction, as method is allowed now.
-            return new RateLimitResponse(true, remaining, 0);
+            return new RateLimiterResponse(true, remaining, 0);
         }
     }
 
