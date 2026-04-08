@@ -18,6 +18,7 @@ public class RateLimiterInterceptor implements HandlerInterceptor {
         this.rateLimiterService = rateLimiterService;
     }
 
+    @Override
     public boolean preHandle(HttpServletRequest request,
             HttpServletResponse response, Object handler) throws Exception {
         String pattern = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE); //automatically maps the correct request in controller
@@ -56,5 +57,4 @@ public class RateLimiterInterceptor implements HandlerInterceptor {
         return true;
                 
     }
-
 }
